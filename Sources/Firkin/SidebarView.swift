@@ -14,6 +14,9 @@ struct SidebarView: View {
             Section("Discover") {
                 sectionRow(.browse)
             }
+            Section("System") {
+                sectionRow(.apps)
+            }
         }
         .listStyle(.sidebar)
         .navigationSplitViewColumnWidth(min: 180, ideal: 210)

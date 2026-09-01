@@ -24,6 +24,9 @@ public enum BrewAction: Hashable, Sendable {
     case update
     case upgradeAll
     case install(BrewPackage)
+    /// Install a cask while taking ownership of the already-present app
+    /// (`brew install --cask --adopt`).
+    case adopt(BrewPackage)
     case upgrade(BrewPackage)
     case uninstall(BrewPackage)
     case pin(BrewPackage)
@@ -55,8 +58,20 @@ public actor BrewClient {
             .first ?? "Homebrew"
     }
 
-    /// Everything currently installed, formulae and casks, sorted by name.
-    public func installedPackages() async throws -> [BrewPackage] {
+    /// Everything currently installed, plus which .app bundles each installed
+    /// cask owns (from its artifacts) — used to match apps on disk to casks.
+    public struct InstalledSnapshot: Sendable {
+        public let packages: [BrewPackage]
+        /// Installed cask token → the .app bundle names its artifacts declare.
+        public let caskApps: [String: [String]]
+
+        public init(packages: [BrewPackage], caskApps: [String: [String]]) {
+            self.packages = packages
+            self.caskApps = caskApps
+        }
+    }
+
+    public func installedSnapshot() async throws -> InstalledSnapshot {
         let output = try await runChecked(["info", "--json=v2", "--installed"])
         let response: BrewInfoResponse
         do {
@@ -67,12 +82,38 @@ public actor BrewClient {
         let formulae = response.formulae
             .filter { !($0.installed?.isEmpty ?? true) }
             .map(BrewPackage.init)
-        let casks = response.casks
-            .filter { $0.installed != nil }
-            .map(BrewPackage.init)
-        return (formulae + casks).sorted {
+        let installedCasks = response.casks.filter { $0.installed != nil }
+        let packages = (formulae + installedCasks.map(BrewPackage.init)).sorted {
             $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
         }
+        let caskApps = Dictionary(
+            installedCasks.map { ($0.token, $0.appBundleNames) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return InstalledSnapshot(packages: packages, caskApps: caskApps)
+    }
+
+    /// Everything currently installed, formulae and casks, sorted by name.
+    public func installedPackages() async throws -> [BrewPackage] {
+        try await installedSnapshot().packages
+    }
+
+    /// All cask tokens in brew's local index. brew keeps this list cached on
+    /// disk, so the call is fast (~0.1s warm).
+    public func allCaskTokens() async throws -> Set<String> {
+        let output = try await runChecked(["casks"])
+        return Set(
+            output.standardOutput
+                .components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    /// Catalog details for cask tokens. Every token must exist — one unknown
+    /// token fails the whole brew call — so validate via `allCaskTokens()`.
+    public func caskDetails(tokens: [String]) async throws -> [BrewPackage] {
+        try await details(kind: .cask, names: tokens)
     }
 
     // MARK: Search
@@ -141,6 +182,8 @@ public actor BrewClient {
             return ["upgrade"]
         case let .install(package):
             return ["install", package.kind == .cask ? "--cask" : "--formula", package.name]
+        case let .adopt(package):
+            return ["install", "--cask", "--adopt", package.name]
         case let .upgrade(package):
             return ["upgrade", package.kind == .cask ? "--cask" : "--formula", package.name]
         case let .uninstall(package):

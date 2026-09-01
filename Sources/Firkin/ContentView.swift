@@ -10,20 +10,21 @@ struct ContentView: View {
             SidebarView()
         } content: {
             Group {
-                if store.effectiveSection == .browse {
-                    BrowseListView()
-                } else {
-                    PackageListView()
+                switch store.effectiveSection {
+                case .browse: BrowseListView()
+                case .apps: AppsListView()
+                default: PackageListView()
                 }
             }
             .navigationSplitViewColumnWidth(min: 280, ideal: 330)
         } detail: {
-            PackageDetailView()
+            if store.effectiveSection == .apps {
+                AppDetailView()
+            } else {
+                PackageDetailView()
+            }
         }
-        .searchable(
-            text: $store.searchText,
-            prompt: store.effectiveSection == .browse ? "Search all of Homebrew" : "Search installed packages"
-        )
+        .searchable(text: $store.searchText, prompt: searchPrompt)
         .toolbar {
             ToolbarItemGroup {
                 if store.outdatedCount > 0 {
@@ -59,6 +60,14 @@ struct ContentView: View {
                     Task { await store.refresh() }
                 }
             }
+        }
+    }
+
+    private var searchPrompt: String {
+        switch store.effectiveSection {
+        case .browse: return "Search all of Homebrew"
+        case .apps: return "Search applications"
+        default: return "Search installed packages"
         }
     }
 }

@@ -54,6 +54,34 @@ public struct CaskInfo: Decodable {
     public let autoUpdates: Bool?
     public let deprecated: Bool?
     public let pinned: Bool?
+    public let artifacts: [CaskArtifact]?
+
+    /// The .app bundle names this cask installs, e.g. ["Firefox.app"].
+    public var appBundleNames: [String] {
+        artifacts?.compactMap(\.app).flatMap { $0 } ?? []
+    }
+}
+
+/// One entry of a cask's `artifacts` array. Only the `app` key matters to
+/// Firkin; every other artifact kind (uninstall, zap, binary, …) is ignored,
+/// as are non-string app entries like {"target": …} rename forms.
+public struct CaskArtifact: Decodable {
+    public let app: [String]?
+
+    private struct AppEntry: Decodable {
+        let name: String?
+        init(from decoder: Decoder) throws {
+            name = try? decoder.singleValueContainer().decode(String.self)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey { case app }
+
+    public init(from decoder: Decoder) throws {
+        let container = try? decoder.container(keyedBy: CodingKeys.self)
+        app = (try? container?.decode([AppEntry].self, forKey: .app))?
+            .map { $0.compactMap(\.name) }
+    }
 }
 
 public extension BrewPackage {

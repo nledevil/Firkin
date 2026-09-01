@@ -38,6 +38,12 @@ public struct BrewPackage: Identifiable, Hashable, Sendable {
     /// whether brew reported an installed version.
     public var isInstalled: Bool { installedVersion != nil }
 
+    /// Cask versions may append a build after a comma ("155.0,abc123");
+    /// this is the human part, comparable to an app bundle's version.
+    public var normalizedLatestVersion: String? {
+        latestVersion?.split(separator: ",").first.map(String.init)
+    }
+
     public init(
         kind: PackageKind,
         name: String,
