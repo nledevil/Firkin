@@ -7,11 +7,12 @@ struct SidebarView: View {
         @Bindable var store = store
         List(selection: $store.sidebarSelection) {
             Section("Library") {
-                ForEach(PackageStore.SidebarSection.allCases) { section in
-                    Label(section.title, systemImage: section.systemImage)
-                        .badge(store.count(for: section))
-                        .tag(section)
+                ForEach(PackageStore.SidebarSection.librarySections) { section in
+                    sectionRow(section)
                 }
+            }
+            Section("Discover") {
+                sectionRow(.browse)
             }
         }
         .listStyle(.sidebar)
@@ -25,5 +26,11 @@ struct SidebarView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    private func sectionRow(_ section: PackageStore.SidebarSection) -> some View {
+        Label(section.title, systemImage: section.systemImage)
+            .badge(store.count(for: section))
+            .tag(section)
     }
 }

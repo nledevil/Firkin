@@ -23,6 +23,7 @@ public enum BrewClientError: Error, LocalizedError {
 public enum BrewAction: Hashable, Sendable {
     case update
     case upgradeAll
+    case install(BrewPackage)
     case upgrade(BrewPackage)
     case uninstall(BrewPackage)
     case pin(BrewPackage)
@@ -74,6 +75,62 @@ public actor BrewClient {
         }
     }
 
+    // MARK: Search
+
+    /// How many results of each kind a search fetches details for.
+    public static let searchResultLimit = 25
+
+    /// Searches the whole Homebrew catalog by name and returns detailed
+    /// results — installed packages included, so callers can show state.
+    /// Formula and cask searches run concurrently, as do the detail fetches.
+    public func search(_ query: String) async throws -> [BrewPackage] {
+        async let formulaSearch = ProcessRunner.run(
+            brewURL, arguments: ["search", "--formula", "--", query], environment: environment)
+        async let caskSearch = ProcessRunner.run(
+            brewURL, arguments: ["search", "--cask", "--", query], environment: environment)
+        let formulaNames = try Self.searchNames(from: try await formulaSearch, command: "brew search --formula \(query)")
+        let caskNames = try Self.searchNames(from: try await caskSearch, command: "brew search --cask \(query)")
+
+        async let formulae = details(kind: .formula, names: Array(formulaNames.prefix(Self.searchResultLimit)))
+        async let casks = details(kind: .cask, names: Array(caskNames.prefix(Self.searchResultLimit)))
+        let results = try await formulae + (try await casks)
+        return BrewSearch.ranked(results, query: query)
+    }
+
+    /// "No formulae or casks found" is an empty result, not a failure.
+    private static func searchNames(from output: ProcessOutput, command: String) throws -> [String] {
+        guard output.status == 0 else {
+            if (output.standardError + output.standardOutput).contains("No formulae or casks found") {
+                return []
+            }
+            throw BrewClientError.commandFailed(
+                command: command, status: output.status, stderr: output.standardError)
+        }
+        return BrewSearch.names(from: output.standardOutput)
+    }
+
+    private func details(kind: PackageKind, names: [String]) async throws -> [BrewPackage] {
+        guard !names.isEmpty else { return [] }
+        let kindFlag = kind == .cask ? "--cask" : "--formula"
+        let output: ProcessOutput
+        do {
+            output = try await runChecked(["info", "--json=v2", kindFlag] + names)
+        } catch {
+            // One stale index entry can fail the whole info batch; degrade to
+            // bare names rather than failing the search.
+            return names.map { BrewPackage(kind: kind, name: $0, displayName: $0) }
+        }
+        let response: BrewInfoResponse
+        do {
+            response = try BrewInfoResponse.decode(from: Data(output.standardOutput.utf8))
+        } catch {
+            throw BrewClientError.decodingFailed(underlying: error)
+        }
+        return kind == .cask
+            ? response.casks.map(BrewPackage.init)
+            : response.formulae.map(BrewPackage.init)
+    }
+
     // MARK: Actions
 
     public nonisolated func arguments(for action: BrewAction) -> [String] {
@@ -82,6 +139,8 @@ public actor BrewClient {
             return ["update"]
         case .upgradeAll:
             return ["upgrade"]
+        case let .install(package):
+            return ["install", package.kind == .cask ? "--cask" : "--formula", package.name]
         case let .upgrade(package):
             return ["upgrade", package.kind == .cask ? "--cask" : "--formula", package.name]
         case let .uninstall(package):

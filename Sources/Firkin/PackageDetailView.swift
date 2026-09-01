@@ -6,7 +6,7 @@ struct PackageDetailView: View {
     @State private var confirmingUninstall = false
 
     var body: some View {
-        if let package = store.selectedPackage {
+        if let package = store.detailPackage {
             detail(for: package)
         } else {
             ContentUnavailableView(
@@ -28,8 +28,10 @@ struct PackageDetailView: View {
                     }
                 }
                 Section("Details") {
-                    LabeledContent("Installed", value: package.installedVersion ?? "—")
-                    LabeledContent("Latest", value: package.latestVersion ?? "—")
+                    if let installed = package.installedVersion {
+                        LabeledContent("Installed", value: installed)
+                    }
+                    LabeledContent(package.isInstalled ? "Latest" : "Version", value: package.latestVersion ?? "—")
                     if package.autoUpdates {
                         LabeledContent("Updates", value: "App updates itself")
                     }
@@ -48,25 +50,33 @@ struct PackageDetailView: View {
                     }
                 }
                 Section {
-                    if package.isOutdated {
+                    if !package.isInstalled {
                         Button {
-                            Task { await store.perform(.upgrade(package)) }
+                            Task { await store.perform(.install(package)) }
                         } label: {
-                            Label("Upgrade to \(package.latestVersion ?? "Latest")", systemImage: "arrow.up.circle")
+                            Label("Install", systemImage: "arrow.down.circle")
                         }
-                    }
-                    if package.kind == .formula {
-                        Button {
-                            Task { await store.perform(package.isPinned ? .unpin(package) : .pin(package)) }
+                    } else {
+                        if package.isOutdated {
+                            Button {
+                                Task { await store.perform(.upgrade(package)) }
+                            } label: {
+                                Label("Upgrade to \(package.latestVersion ?? "Latest")", systemImage: "arrow.up.circle")
+                            }
+                        }
+                        if package.kind == .formula {
+                            Button {
+                                Task { await store.perform(package.isPinned ? .unpin(package) : .pin(package)) }
+                            } label: {
+                                Label(package.isPinned ? "Unpin" : "Pin at Current Version",
+                                      systemImage: package.isPinned ? "pin.slash" : "pin")
+                            }
+                        }
+                        Button(role: .destructive) {
+                            confirmingUninstall = true
                         } label: {
-                            Label(package.isPinned ? "Unpin" : "Pin at Current Version",
-                                  systemImage: package.isPinned ? "pin.slash" : "pin")
+                            Label("Uninstall…", systemImage: "trash")
                         }
-                    }
-                    Button(role: .destructive) {
-                        confirmingUninstall = true
-                    } label: {
-                        Label("Uninstall…", systemImage: "trash")
                     }
                 }
             }
@@ -113,7 +123,9 @@ struct PackageDetailView: View {
 
     private func subtitle(for package: BrewPackage) -> String {
         var parts = [package.name, package.kind.label]
-        if package.isInstalledAsDependency {
+        if !package.isInstalled {
+            parts.append("not installed")
+        } else if package.isInstalledAsDependency {
             parts.append("installed as dependency")
         }
         return parts.joined(separator: " · ")

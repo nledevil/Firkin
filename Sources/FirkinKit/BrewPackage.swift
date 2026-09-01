@@ -34,6 +34,10 @@ public struct BrewPackage: Identifiable, Hashable, Sendable {
 
     public var id: String { "\(kind.rawValue):\(name)" }
 
+    /// Search results carry catalog entries too; installed state is simply
+    /// whether brew reported an installed version.
+    public var isInstalled: Bool { installedVersion != nil }
+
     public init(
         kind: PackageKind,
         name: String,

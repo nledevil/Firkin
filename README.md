@@ -10,10 +10,11 @@ A *firkin* is a small cask of ale. Firkin looks after your casks — and your fo
 
 - Browse installed formulae and casks in a native SwiftUI interface
 - Filter by kind, see what's outdated, search by name or description
+- Search all of Homebrew from the Browse section and install new formulae and casks with one click
 - Upgrade, pin/unpin, and uninstall packages, watching the real `brew` output as it runs
 - No Electron, no web views — SwiftUI talking to your own `brew`
 
-Planned: package discovery and install, tap management, `brew services`, adopting already-installed apps as casks, signed releases.
+Planned: tap management, `brew services`, adopting already-installed apps as casks, greedy cask upgrades, signed releases.
 
 ## Requirements
 

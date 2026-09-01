@@ -9,12 +9,21 @@ struct ContentView: View {
         NavigationSplitView {
             SidebarView()
         } content: {
-            PackageListView()
-                .navigationSplitViewColumnWidth(min: 280, ideal: 330)
+            Group {
+                if store.effectiveSection == .browse {
+                    BrowseListView()
+                } else {
+                    PackageListView()
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 280, ideal: 330)
         } detail: {
             PackageDetailView()
         }
-        .searchable(text: $store.searchText, prompt: "Search installed packages")
+        .searchable(
+            text: $store.searchText,
+            prompt: store.effectiveSection == .browse ? "Search all of Homebrew" : "Search installed packages"
+        )
         .toolbar {
             ToolbarItemGroup {
                 if store.outdatedCount > 0 {

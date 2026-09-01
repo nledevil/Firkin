@@ -41,8 +41,9 @@ struct PackageListView: View {
     }
 }
 
-private struct PackageRow: View {
+struct PackageRow: View {
     let package: BrewPackage
+    var showsInstalledBadge = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -83,7 +84,21 @@ private struct PackageRow: View {
 
     @ViewBuilder
     private var versionLabel: some View {
-        if package.isOutdated {
+        if showsInstalledBadge {
+            if package.isInstalled {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("Installed")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                Text(package.latestVersion ?? "—")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+            }
+        } else if package.isOutdated {
             Text("\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.orange)
