@@ -13,7 +13,7 @@ A *firkin* is a small cask of ale. Firkin looks after your casks — and your fo
 - Upgrade, pin/unpin, and uninstall packages, watching the real `brew` output as it runs
 - No Electron, no web views — SwiftUI talking to your own `brew`
 
-Planned: package discovery and install, tap management, `brew services`, adopting already-installed apps as casks, app icon, signed releases.
+Planned: package discovery and install, tap management, `brew services`, adopting already-installed apps as casks, signed releases.
 
 ## Requirements
 
@@ -33,6 +33,8 @@ Scripts/compile_and_run.sh   # package Firkin.app and launch it
 `Scripts/test.sh` is a thin wrapper over `swift test`: with full Xcode it just runs it, and on machines with only the Command Line Tools it adds the search paths for `Testing.framework`, which CLT ships in a non-default location.
 
 `Scripts/package_app.sh` builds a release binary, assembles `Firkin.app` with a generated Info.plist, and ad-hoc signs it. Versioning lives in `version.env`.
+
+The app icon is drawn entirely in code: `Scripts/generate_icon.swift` renders the ale cask with AppKit at every required size and assembles `Icon.icns`. The packaging script runs it automatically when the icon is missing, so there are no binary image assets in the repo.
 
 ## Project layout
 

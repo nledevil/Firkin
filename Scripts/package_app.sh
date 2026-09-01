@@ -33,6 +33,11 @@ APP="$ROOT/${APP_NAME}.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 
+# Render the code-drawn app icon if it hasn't been generated yet.
+if [[ ! -f "$ROOT/Icon.icns" && -f "$ROOT/Scripts/generate_icon.swift" ]]; then
+  swift "$ROOT/Scripts/generate_icon.swift"
+fi
+
 # Convert Icon.icon to Icon.icns if present (requires iconutil).
 ICON_SOURCE="$ROOT/Icon.icon"
 ICON_TARGET="$ROOT/Icon.icns"
