@@ -1,9 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.sparkle-project.org/rss/1.0/modules/sparkle/">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss xmlns:sparkle="http://www.sparkle-project.org/rss/1.0/modules/sparkle/" version="2.0">
     <channel>
         <title>Firkin</title>
         <link>https://github.com/nledevil/Firkin</link>
         <description>Firkin updates</description>
         <language>en</language>
+        <item>
+            <title>0.2.0</title>
+            <pubDate>Tue, 01 Sep 2026 20:55:45 +0000</pubDate>
+            <link>https://github.com/nledevil/Firkin</link>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/nledevil/Firkin/releases/download/v0.2.0/Firkin-0.2.0.dmg" length="2836959" type="application/octet-stream" sparkle:edSignature="FS8INzAiUkc8DHw01To8VF/2IZ1sppHu1LCLZ5g5Iov+GfDTv+b8ROnki1K3qtKnJkUkr/YhnF95dNBJgzdBDw=="/>
+        </item>
     </channel>
 </rss>
