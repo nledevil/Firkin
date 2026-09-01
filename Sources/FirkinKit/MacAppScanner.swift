@@ -1,4 +1,5 @@
 import Foundation
+import CoreServices
 
 /// Finds .app bundles on disk and reads their identity, version, and
 /// executable architectures.
@@ -57,12 +58,21 @@ public enum MacAppScanner {
         // Architectures come from NSBundle, which parses the Mach-O header
         // (including fat binaries) for us.
         let architectures = (Bundle(url: url)?.executableArchitectures ?? []).map(\.intValue)
+        let resourceValues = try? url.resourceValues(forKeys: [.addedToDirectoryDateKey, .creationDateKey])
         return MacApp(
             url: url,
             name: url.deletingPathExtension().lastPathComponent,
             bundleID: plist["CFBundleIdentifier"] as? String,
             version: (plist["CFBundleShortVersionString"] as? String) ?? (plist["CFBundleVersion"] as? String),
-            architecture: .classify(architectures: architectures)
+            architecture: .classify(architectures: architectures),
+            installedDate: resourceValues?.addedToDirectoryDate ?? resourceValues?.creationDate,
+            lastOpenedDate: lastUsedDate(for: url)
         )
+    }
+
+    /// Finder's "Last Opened" value, from the Spotlight index.
+    private static func lastUsedDate(for url: URL) -> Date? {
+        guard let item = MDItemCreateWithURL(kCFAllocatorDefault, url as CFURL) else { return nil }
+        return MDItemCopyAttribute(item, kMDItemLastUsedDate) as? Date
     }
 }

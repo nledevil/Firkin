@@ -95,6 +95,10 @@ import Testing
     let apps = MacAppScanner.scan(directories: [root])
     #expect(apps.map(\.name).sorted() == ["Nested", "Top"])
     #expect(apps.allSatisfy { $0.version == "1.0" })
+    // Date-added (or creation) is always readable from the filesystem.
+    // (No assertion on lastOpenedDate: Spotlight synthesizes values for
+    // unindexed locations like the temp directory.)
+    #expect(apps.allSatisfy { $0.installedDate != nil })
 }
 
 @Test func trashMovesBundleToTrash() throws {

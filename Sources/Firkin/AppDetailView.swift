@@ -30,6 +30,17 @@ struct AppDetailView: View {
                     if let running = runningStatus(for: entry) {
                         LabeledContent("Running", value: running)
                     }
+                    LabeledContent("Last Opened") {
+                        Text(entry.app.lastOpenedDate.map {
+                            $0.formatted(.relative(presentation: .named))
+                        } ?? "—")
+                        .help(entry.app.lastOpenedDate.map {
+                            $0.formatted(date: .abbreviated, time: .shortened)
+                        } ?? "Never opened, or not in the Spotlight index")
+                    }
+                    LabeledContent("Installed On", value: entry.app.installedDate.map {
+                        $0.formatted(date: .abbreviated, time: .omitted)
+                    } ?? "—")
                     if let bundleID = entry.app.bundleID {
                         LabeledContent("Bundle ID", value: bundleID)
                     }

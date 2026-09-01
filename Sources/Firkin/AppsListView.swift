@@ -69,9 +69,10 @@ private struct AppRow: View {
                             .help("Part of macOS")
                     }
                 }
-                Text(entry.app.version ?? "—")
+                Text(rowSubtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
             Spacer(minLength: 8)
             if entry.updateAvailable, let latest = entry.caskPackage?.normalizedLatestVersion {
@@ -82,6 +83,14 @@ private struct AppRow: View {
             ArchitectureChip(architecture: entry.app.architecture)
         }
         .padding(.vertical, 2)
+    }
+
+    private var rowSubtitle: String {
+        var parts: [String] = [entry.app.version ?? "—"]
+        if let lastOpened = entry.app.lastOpenedDate {
+            parts.append("opened \(lastOpened.formatted(.relative(presentation: .named)))")
+        }
+        return parts.joined(separator: " · ")
     }
 
     private var icon: NSImage {

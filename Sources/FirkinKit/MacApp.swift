@@ -45,6 +45,12 @@ public struct MacApp: Identifiable, Hashable, Sendable {
     public let bundleID: String?
     public let version: String?
     public let architecture: AppArchitecture
+    /// When the bundle landed in its folder (Finder's "Date Added"), falling
+    /// back to the filesystem creation date — the best install-date signal.
+    public let installedDate: Date?
+    /// Spotlight's kMDItemLastUsedDate — what Finder shows as "Last Opened".
+    /// nil means never opened, or not indexed by Spotlight.
+    public let lastOpenedDate: Date?
 
     public var id: String { url.path }
     public var bundleFileName: String { url.lastPathComponent }
@@ -53,12 +59,22 @@ public struct MacApp: Identifiable, Hashable, Sendable {
     /// uninstalled and is never Homebrew-relevant.
     public var isSystemApp: Bool { url.path.hasPrefix("/System/") }
 
-    public init(url: URL, name: String, bundleID: String?, version: String?, architecture: AppArchitecture) {
+    public init(
+        url: URL,
+        name: String,
+        bundleID: String?,
+        version: String?,
+        architecture: AppArchitecture,
+        installedDate: Date? = nil,
+        lastOpenedDate: Date? = nil
+    ) {
         self.url = url
         self.name = name
         self.bundleID = bundleID
         self.version = version
         self.architecture = architecture
+        self.installedDate = installedDate
+        self.lastOpenedDate = lastOpenedDate
     }
 
     /// Best-effort guess of the Homebrew cask token for an app name, following
