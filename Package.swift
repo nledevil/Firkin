@@ -21,6 +21,9 @@ let package = Package(
             name: "Firkin",
             dependencies: ["FirkinKit"],
             path: "Sources/Firkin",
+            resources: [
+                .process("Resources"),
+            ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
