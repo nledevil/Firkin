@@ -18,6 +18,16 @@ A *firkin* is a small cask of ale. Firkin looks after your casks — and your fo
 
 Planned: tap management, `brew services`, greedy cask upgrades, signed releases.
 
+## Install
+
+Download the latest `Firkin-x.y.z.dmg` from [Releases](https://github.com/nledevil/Firkin/releases), open it, and drag **Firkin** to **Applications**. Builds are universal (Apple Silicon + Intel).
+
+Releases aren't notarized yet ([#1](https://github.com/nledevil/Firkin/issues/1)), so on first launch macOS will warn that it can't verify the app. Open **System Settings → Privacy & Security** and click **Open Anyway**, or clear the quarantine flag:
+
+```bash
+xattr -d com.apple.quarantine /Applications/Firkin.app
+```
+
 ## Requirements
 
 - macOS 14 (Sonoma) or later

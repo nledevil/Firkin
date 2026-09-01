@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: Scripts/test.sh
+      - name: Build universal DMG
+        run: ARCHES="arm64 x86_64" Scripts/make_dmg.sh
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > /tmp/release-notes.md <<'EOF'
+          A native macOS app for managing your Homebrew packages — browse and upgrade installed formulae and casks, search all of Homebrew and install with one click, and see every app on your Mac with its architecture (including what's running under Rosetta 2), cask-based update tracking, adoption into Homebrew, and safe uninstall.
+
+          ## Install
+
+          Download the DMG below, open it, and drag **Firkin** to **Applications**. The build is universal (Apple Silicon + Intel) and requires macOS 14 or later, with [Homebrew](https://brew.sh) installed.
+
+          > **First launch:** releases are not yet notarized ([#1](https://github.com/nledevil/Firkin/issues/1)), so macOS will warn that it can't verify the app. Open **System Settings → Privacy & Security** and click **Open Anyway**, or clear the quarantine flag:
+          > ```
+          > xattr -d com.apple.quarantine /Applications/Firkin.app
+          > ```
+          EOF
+          gh release create "$GITHUB_REF_NAME" build/Firkin-*.dmg \
+            --title "Firkin $GITHUB_REF_NAME" \
+            --notes-file /tmp/release-notes.md
