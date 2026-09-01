@@ -8,6 +8,11 @@ let package = Package(
     platforms: [
         .macOS(.v14),
     ],
+    dependencies: [
+        // Auto-updates. Sparkle also provides the sign_update/generate_appcast
+        // tools under .build/artifacts, used by the release workflow.
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.8.0"),
+    ],
     targets: [
         // Homebrew data layer: models, JSON decoding, process execution.
         // Kept free of SwiftUI so it stays unit-testable.
@@ -19,7 +24,10 @@ let package = Package(
         // The SwiftUI app.
         .executableTarget(
             name: "Firkin",
-            dependencies: ["FirkinKit"],
+            dependencies: [
+                "FirkinKit",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
             path: "Sources/Firkin",
             resources: [
                 .process("Resources"),

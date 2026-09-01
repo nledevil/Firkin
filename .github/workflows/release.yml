@@ -35,3 +35,26 @@ jobs:
           gh release create "$GITHUB_REF_NAME" build/Firkin-*.dmg \
             --title "Firkin $GITHUB_REF_NAME" \
             --notes-file /tmp/release-notes.md
+      - name: Generate and publish appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          KEYFILE=$(mktemp)
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$KEYFILE"
+          GENERATE_APPCAST=$(find .build/artifacts -type f -name generate_appcast -not -path "*old_dsa*" | head -1)
+          WORK=$(mktemp -d)
+          cp build/Firkin-*.dmg "$WORK/"
+          cp appcast.xml "$WORK/appcast.xml"
+          "$GENERATE_APPCAST" --ed-key-file "$KEYFILE" \
+            --download-url-prefix "https://github.com/nledevil/Firkin/releases/download/${GITHUB_REF_NAME}/" \
+            --link "https://github.com/nledevil/Firkin" \
+            "$WORK"
+          rm -f "$KEYFILE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          cp "$WORK/appcast.xml" appcast.xml
+          git add appcast.xml
+          git commit -m "Update appcast for ${GITHUB_REF_NAME}"
+          git push origin main

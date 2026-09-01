@@ -53,6 +53,13 @@ fi
 BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
+# Sparkle auto-update keys, when configured in version.env.
+SPARKLE_PLIST=""
+if [[ -n "${SPARKLE_FEED_URL:-}" && -n "${SPARKLE_PUBLIC_ED_KEY:-}" ]]; then
+  SPARKLE_PLIST="    <key>SUFeedURL</key><string>${SPARKLE_FEED_URL}</string>
+    <key>SUPublicEDKey</key><string>${SPARKLE_PUBLIC_ED_KEY}</string>"
+fi
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -67,6 +74,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
     <key>LSMinimumSystemVersion</key><string>${MACOS_MIN_VERSION}</string>
     <key>NSHumanReadableCopyright</key><string>${COPYRIGHT:-Copyright © 2026 Ryan Schultz. MIT License.}</string>
+${SPARKLE_PLIST}
     <key>LSUIElement</key><${LSUI_VALUE}/>
     <key>CFBundleIconFile</key><string>Icon</string>
     <key>BuildTimestamp</key><string>${BUILD_TIMESTAMP}</string>

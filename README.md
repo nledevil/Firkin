@@ -14,6 +14,7 @@ A *firkin* is a small cask of ale. Firkin looks after your casks — and your fo
 - Applications view: every app on your Mac — /Applications, /System/Applications, ~/Applications, one level of subfolders like Utilities, and Safari's cryptex location — with its architecture (Apple Silicon, Universal, or Intel-under-Rosetta — including whether a running app is actually being translated), update tracking via matching Homebrew casks, and one-click adoption of manually-installed apps into Homebrew (`brew install --cask --adopt`)
 - Uninstall any application: brew-managed apps through `brew uninstall`, everything else moved to the Trash (reversible) — with an administrator-privileges fallback for protected apps, using the system's own authorization dialog (Firkin never sees the password)
 - Upgrade, pin/unpin, and uninstall packages, watching the real `brew` output as it runs
+- Automatic app updates via [Sparkle](https://sparkle-project.org) — permission-based, EdDSA-signed, fed from this repo's releases
 - No Electron, no web views — SwiftUI talking to your own `brew`
 
 Planned: tap management, `brew services`, greedy cask upgrades, signed releases.
@@ -58,7 +59,7 @@ Tests/FirkinKitTests Unit tests for the data layer, based on real `brew info --j
 Scripts/             Build, package, and run scripts (no Xcode required)
 ```
 
-Firkin shells out to your existing `brew` binary and parses its `--json=v2` output. It never talks to the network itself; everything goes through Homebrew.
+Firkin shells out to your existing `brew` binary and parses its `--json=v2` output. The package features never talk to the network directly — everything goes through Homebrew. The one exception is Sparkle's update check, which asks for permission first and only contacts this repository's appcast and release downloads.
 
 Because it drives `brew`, Firkin runs unsandboxed and is distributed outside the Mac App Store.
 
