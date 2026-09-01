@@ -56,6 +56,47 @@ import Testing
     #expect(response.casks[0].appBundleNames == ["Firefox.app"])
 }
 
+@Test func systemAppDetectionByPath() {
+    let system = MacApp(
+        url: URL(fileURLWithPath: "/System/Applications/Mail.app"),
+        name: "Mail", bundleID: nil, version: nil, architecture: .universal)
+    let cryptex = MacApp(
+        url: URL(fileURLWithPath: "/System/Cryptexes/App/System/Applications/Safari.app"),
+        name: "Safari", bundleID: nil, version: nil, architecture: .universal)
+    let regular = MacApp(
+        url: URL(fileURLWithPath: "/Applications/Firefox.app"),
+        name: "Firefox", bundleID: nil, version: nil, architecture: .universal)
+    #expect(system.isSystemApp)
+    #expect(cryptex.isSystemApp)
+    #expect(!regular.isSystemApp)
+}
+
+@Test func scannerFindsAppsOneLevelDeepButNotDeeper() throws {
+    let fileManager = FileManager.default
+    let root = fileManager.temporaryDirectory
+        .appendingPathComponent("FirkinScanTest-\(UUID().uuidString)")
+    defer { try? fileManager.removeItem(at: root) }
+
+    func makeApp(at url: URL, bundleID: String) throws {
+        let contents = url.appendingPathComponent("Contents")
+        try fileManager.createDirectory(at: contents, withIntermediateDirectories: true)
+        let plist: [String: Any] = [
+            "CFBundleIdentifier": bundleID,
+            "CFBundleShortVersionString": "1.0",
+        ]
+        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        try data.write(to: contents.appendingPathComponent("Info.plist"))
+    }
+
+    try makeApp(at: root.appendingPathComponent("Top.app"), bundleID: "test.top")
+    try makeApp(at: root.appendingPathComponent("Utilities/Nested.app"), bundleID: "test.nested")
+    try makeApp(at: root.appendingPathComponent("Utilities/Deeper/TooDeep.app"), bundleID: "test.toodeep")
+
+    let apps = MacAppScanner.scan(directories: [root])
+    #expect(apps.map(\.name).sorted() == ["Nested", "Top"])
+    #expect(apps.allSatisfy { $0.version == "1.0" })
+}
+
 @Test func trashMovesBundleToTrash() throws {
     let fileManager = FileManager.default
     let bundle = fileManager.temporaryDirectory

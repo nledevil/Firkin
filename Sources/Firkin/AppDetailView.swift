@@ -41,41 +41,20 @@ struct AppDetailView: View {
                     }
                 }
                 Section("Homebrew") {
-                    switch entry.management {
-                    case let .managedByBrew(package):
-                        LabeledContent("Cask", value: package.name)
-                        LabeledContent("Installed", value: package.installedVersion ?? "—")
-                        LabeledContent("Latest", value: package.normalizedLatestVersion ?? "—")
-                        if package.autoUpdates {
-                            LabeledContent("Updates", value: "App updates itself")
-                        }
-                        if package.isOutdated {
-                            Button {
-                                Task { await store.perform(.upgrade(package)) }
-                            } label: {
-                                Label("Upgrade to \(package.normalizedLatestVersion ?? "Latest")", systemImage: "arrow.up.circle")
-                            }
-                        }
-                    case let .adoptable(package):
-                        LabeledContent("Matching cask", value: package.name)
-                        LabeledContent("App version", value: entry.app.version ?? "—")
-                        LabeledContent("Homebrew has", value: package.normalizedLatestVersion ?? "—")
-                        Button {
-                            Task { await store.perform(.adopt(package)) }
-                        } label: {
-                            Label("Adopt into Homebrew", systemImage: "arrow.down.app")
-                        }
-                        .help("Runs brew install --cask --adopt so Homebrew manages this app's updates from now on")
-                    case .unmanaged:
-                        Text("No matching Homebrew cask was found for this app.")
+                    if entry.app.isSystemApp {
+                        Text("Built into macOS — not managed by Homebrew.")
                             .foregroundStyle(.secondary)
+                    } else {
+                        homebrewContent(for: entry)
                     }
                 }
-                Section {
-                    Button(role: .destructive) {
-                        confirmingUninstall = true
-                    } label: {
-                        Label(isBrewManaged(entry) ? "Uninstall…" : "Move to Trash…", systemImage: "trash")
+                if !entry.app.isSystemApp {
+                    Section {
+                        Button(role: .destructive) {
+                            confirmingUninstall = true
+                        } label: {
+                            Label(isBrewManaged(entry) ? "Uninstall…" : "Move to Trash…", systemImage: "trash")
+                        }
                     }
                 }
             }
@@ -111,6 +90,39 @@ struct AppDetailView: View {
             Text(failure.canEscalate
                 ? "\(failure.message)\n\nmacOS can ask for an administrator password and move it to the Trash anyway. The app stays in the Trash, so this remains reversible."
                 : failure.message)
+        }
+    }
+
+    @ViewBuilder
+    private func homebrewContent(for entry: PackageStore.AppEntry) -> some View {
+        switch entry.management {
+        case let .managedByBrew(package):
+            LabeledContent("Cask", value: package.name)
+            LabeledContent("Installed", value: package.installedVersion ?? "—")
+            LabeledContent("Latest", value: package.normalizedLatestVersion ?? "—")
+            if package.autoUpdates {
+                LabeledContent("Updates", value: "App updates itself")
+            }
+            if package.isOutdated {
+                Button {
+                    Task { await store.perform(.upgrade(package)) }
+                } label: {
+                    Label("Upgrade to \(package.normalizedLatestVersion ?? "Latest")", systemImage: "arrow.up.circle")
+                }
+            }
+        case let .adoptable(package):
+            LabeledContent("Matching cask", value: package.name)
+            LabeledContent("App version", value: entry.app.version ?? "—")
+            LabeledContent("Homebrew has", value: package.normalizedLatestVersion ?? "—")
+            Button {
+                Task { await store.perform(.adopt(package)) }
+            } label: {
+                Label("Adopt into Homebrew", systemImage: "arrow.down.app")
+            }
+            .help("Runs brew install --cask --adopt so Homebrew manages this app's updates from now on")
+        case .unmanaged:
+            Text("No matching Homebrew cask was found for this app.")
+                .foregroundStyle(.secondary)
         }
     }
 

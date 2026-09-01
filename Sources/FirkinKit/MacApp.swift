@@ -49,6 +49,10 @@ public struct MacApp: Identifiable, Hashable, Sendable {
     public var id: String { url.path }
     public var bundleFileName: String { url.lastPathComponent }
 
+    /// Part of macOS itself (sealed system volume or a cryptex): cannot be
+    /// uninstalled and is never Homebrew-relevant.
+    public var isSystemApp: Bool { url.path.hasPrefix("/System/") }
+
     public init(url: URL, name: String, bundleID: String?, version: String?, architecture: AppArchitecture) {
         self.url = url
         self.name = name

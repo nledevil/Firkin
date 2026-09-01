@@ -346,7 +346,11 @@ final class PackageStore {
         var entries: [AppEntry] = []
         var unmatched: [MacApp] = []
         for app in scanned {
-            if let token = ownerByBundleName[app.bundleFileName], let package = caskByToken[token] {
+            if app.isSystemApp {
+                // Part of macOS: SIP-protected and never brew-relevant, so
+                // skip cask matching (a name like "Mail" could false-match).
+                entries.append(AppEntry(app: app, management: .unmanaged))
+            } else if let token = ownerByBundleName[app.bundleFileName], let package = caskByToken[token] {
                 entries.append(AppEntry(app: app, management: .managedByBrew(package)))
             } else {
                 unmatched.append(app)

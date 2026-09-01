@@ -62,6 +62,12 @@ private struct AppRow: View {
                             .foregroundStyle(.orange)
                             .help("Managed by Homebrew")
                     }
+                    if entry.app.isSystemApp {
+                        Image(systemName: "apple.logo")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .help("Part of macOS")
+                    }
                 }
                 Text(entry.app.version ?? "—")
                     .font(.caption)
