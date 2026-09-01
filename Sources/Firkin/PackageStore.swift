@@ -111,6 +111,8 @@ final class PackageStore {
     private(set) var appsLoaded = false
     private(set) var appsError: String?
     var selectedAppID: String?
+    /// Set when moving an app to the Trash fails; shown as an alert.
+    var appTrashError: String?
     private var caskAppNames: [String: [String]] = [:]
     private var allCaskTokens: Set<String>?
 
@@ -237,6 +239,25 @@ final class PackageStore {
             searchError = error.localizedDescription
         }
         isSearching = false
+    }
+
+    /// Uninstalls an app from disk: brew-managed apps through brew (so brew's
+    /// bookkeeping stays correct), everything else by trashing the bundle.
+    func uninstallApp(_ entry: AppEntry) async {
+        if case let .managedByBrew(package) = entry.management {
+            await perform(.uninstall(package))
+            return
+        }
+        let url = entry.app.url
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try AppTrasher.trash(appAt: url)
+            }.value
+            selectedAppID = nil
+            await loadApps()
+        } catch {
+            appTrashError = error.localizedDescription
+        }
     }
 
     /// Re-runs the current search immediately (no debounce) so result rows

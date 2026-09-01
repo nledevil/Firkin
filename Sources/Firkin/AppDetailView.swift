@@ -5,6 +5,7 @@ import FirkinKit
 /// Detail pane for an application found on disk.
 struct AppDetailView: View {
     @Environment(PackageStore.self) private var store
+    @State private var confirmingUninstall = false
 
     var body: some View {
         if let entry = store.detailAppEntry {
@@ -70,9 +71,56 @@ struct AppDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Section {
+                    Button(role: .destructive) {
+                        confirmingUninstall = true
+                    } label: {
+                        Label(isBrewManaged(entry) ? "Uninstall…" : "Move to Trash…", systemImage: "trash")
+                    }
+                }
             }
             .formStyle(.grouped)
         }
+        .confirmationDialog(
+            isBrewManaged(entry) ? "Uninstall \(entry.app.name)?" : "Move \(entry.app.name) to the Trash?",
+            isPresented: $confirmingUninstall
+        ) {
+            Button(isBrewManaged(entry) ? "Uninstall" : "Move to Trash", role: .destructive) {
+                Task { await store.uninstallApp(entry) }
+            }
+        } message: {
+            Text(uninstallMessage(for: entry))
+        }
+        .alert(
+            "Could Not Move to Trash",
+            isPresented: Binding(
+                get: { store.appTrashError != nil },
+                set: { if !$0 { store.appTrashError = nil } }
+            )
+        ) {
+            Button("OK") { store.appTrashError = nil }
+        } message: {
+            Text("\(store.appTrashError ?? "") You can remove the app with Finder instead.")
+        }
+    }
+
+    private func isBrewManaged(_ entry: PackageStore.AppEntry) -> Bool {
+        if case .managedByBrew = entry.management { return true }
+        return false
+    }
+
+    private func uninstallMessage(for entry: PackageStore.AppEntry) -> String {
+        var message: String
+        if case let .managedByBrew(package) = entry.management {
+            message = "This runs `brew uninstall --cask \(package.name)` and removes the files Homebrew manages for it."
+        } else {
+            message = "Moves \(entry.app.bundleFileName) to the Trash. You can put it back from there."
+        }
+        if let bundleID = entry.app.bundleID,
+           !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty {
+            message += " The app appears to be running right now."
+        }
+        return message
     }
 
     private func header(for entry: PackageStore.AppEntry) -> some View {

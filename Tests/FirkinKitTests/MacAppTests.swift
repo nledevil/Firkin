@@ -56,6 +56,20 @@ import Testing
     #expect(response.casks[0].appBundleNames == ["Firefox.app"])
 }
 
+@Test func trashMovesBundleToTrash() throws {
+    let fileManager = FileManager.default
+    let bundle = fileManager.temporaryDirectory
+        .appendingPathComponent("FirkinTrashTest-\(UUID().uuidString).app")
+    try fileManager.createDirectory(at: bundle, withIntermediateDirectories: true)
+
+    let trashed = try AppTrasher.trash(appAt: bundle)
+
+    #expect(!fileManager.fileExists(atPath: bundle.path))
+    let trashedURL = try #require(trashed)
+    #expect(fileManager.fileExists(atPath: trashedURL.path))
+    try? fileManager.removeItem(at: trashedURL) // clean our own item out of the Trash
+}
+
 @Test func adoptActionArguments() throws {
     let client = try? BrewClient()
     guard let client else { return } // machine without Homebrew
