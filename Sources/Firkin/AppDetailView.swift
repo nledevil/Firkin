@@ -94,13 +94,23 @@ struct AppDetailView: View {
         .alert(
             "Could Not Move to Trash",
             isPresented: Binding(
-                get: { store.appTrashError != nil },
-                set: { if !$0 { store.appTrashError = nil } }
-            )
-        ) {
-            Button("OK") { store.appTrashError = nil }
-        } message: {
-            Text("\(store.appTrashError ?? "") You can remove the app with Finder instead.")
+                get: { store.trashFailure != nil },
+                set: { if !$0 { store.trashFailure = nil } }
+            ),
+            presenting: store.trashFailure
+        ) { failure in
+            if failure.canEscalate {
+                Button("Use Administrator Privileges…") {
+                    Task { await store.uninstallAppWithAdminPrivileges(failure.entry) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } else {
+                Button("OK", role: .cancel) {}
+            }
+        } message: { failure in
+            Text(failure.canEscalate
+                ? "\(failure.message)\n\nmacOS can ask for an administrator password and move it to the Trash anyway. The app stays in the Trash, so this remains reversible."
+                : failure.message)
         }
     }
 

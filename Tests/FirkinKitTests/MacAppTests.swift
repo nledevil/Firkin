@@ -70,6 +70,35 @@ import Testing
     try? fileManager.removeItem(at: trashedURL) // clean our own item out of the Trash
 }
 
+@Test func shellQuotingNeutralizesSingleQuotes() {
+    #expect(AppTrasher.shellQuoted("/Applications/Plain.app") == "'/Applications/Plain.app'")
+    // A name like it's.app must not break out of the quoted argument.
+    #expect(AppTrasher.shellQuoted("/Applications/it's.app") == "'/Applications/it'\\''s.app'")
+}
+
+@Test func appleScriptEscapingHandlesQuotesAndBackslashes() {
+    #expect(AppTrasher.appleScriptEscaped(#"say "hi" \ bye"#) == #"say \"hi\" \\ bye"#)
+}
+
+@Test func privilegedTrashScriptComposition() {
+    let source = URL(fileURLWithPath: "/Applications/Some App.app")
+    let destination = URL(fileURLWithPath: "/Users/me/.Trash/Some App 14.32.05.app")
+    let script = AppTrasher.privilegedTrashScript(moving: source, to: destination, uid: 501, gid: 20)
+    #expect(script.hasPrefix("do shell script \""))
+    #expect(script.hasSuffix("\" with administrator privileges"))
+    #expect(script.contains("/bin/mv '/Applications/Some App.app' '/Users/me/.Trash/Some App 14.32.05.app'"))
+    #expect(script.contains("/usr/sbin/chown -R 501:20 '/Users/me/.Trash/Some App 14.32.05.app'"))
+}
+
+@Test func privilegedTrashDestinationIsTimestampedInUserTrash() {
+    let date = Date(timeIntervalSince1970: 0)
+    let url = AppTrasher.privilegedTrashDestination(
+        for: URL(fileURLWithPath: "/Applications/Thing.app"), at: date)
+    #expect(url.path.contains("/.Trash/"))
+    #expect(url.lastPathComponent.hasPrefix("Thing "))
+    #expect(url.pathExtension == "app")
+}
+
 @Test func adoptActionArguments() throws {
     let client = try? BrewClient()
     guard let client else { return } // machine without Homebrew

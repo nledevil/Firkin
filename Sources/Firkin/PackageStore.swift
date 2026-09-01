@@ -111,8 +111,15 @@ final class PackageStore {
     private(set) var appsLoaded = false
     private(set) var appsError: String?
     var selectedAppID: String?
-    /// Set when moving an app to the Trash fails; shown as an alert.
-    var appTrashError: String?
+    /// Set when moving an app to the Trash fails; shown as an alert that can
+    /// offer to retry with administrator privileges.
+    struct TrashFailure: Identifiable {
+        let id = UUID()
+        let entry: AppEntry
+        let message: String
+        let canEscalate: Bool
+    }
+    var trashFailure: TrashFailure?
     private var caskAppNames: [String: [String]] = [:]
     private var allCaskTokens: Set<String>?
 
@@ -243,6 +250,7 @@ final class PackageStore {
 
     /// Uninstalls an app from disk: brew-managed apps through brew (so brew's
     /// bookkeeping stays correct), everything else by trashing the bundle.
+    /// A permission failure offers escalation to administrator privileges.
     func uninstallApp(_ entry: AppEntry) async {
         if case let .managedByBrew(package) = entry.management {
             await perform(.uninstall(package))
@@ -250,13 +258,35 @@ final class PackageStore {
         }
         let url = entry.app.url
         do {
-            try await Task.detached(priority: .userInitiated) {
+            _ = try await Task.detached(priority: .userInitiated) {
                 try AppTrasher.trash(appAt: url)
             }.value
             selectedAppID = nil
             await loadApps()
         } catch {
-            appTrashError = error.localizedDescription
+            trashFailure = TrashFailure(
+                entry: entry,
+                message: error.localizedDescription,
+                canEscalate: true
+            )
+        }
+    }
+
+    /// Retries a failed trash with admin rights. macOS presents its own
+    /// password dialog; a canceled dialog is not an error.
+    func uninstallAppWithAdminPrivileges(_ entry: AppEntry) async {
+        do {
+            try await AppTrasher.trashWithAdministratorPrivileges(appAt: entry.app.url)
+            selectedAppID = nil
+            await loadApps()
+        } catch AppTrasherError.canceled {
+            // The user dismissed the authorization dialog — nothing to report.
+        } catch {
+            trashFailure = TrashFailure(
+                entry: entry,
+                message: error.localizedDescription,
+                canEscalate: false
+            )
         }
     }
 

@@ -12,7 +12,7 @@ A *firkin* is a small cask of ale. Firkin looks after your casks — and your fo
 - Filter by kind, see what's outdated, search by name or description
 - Search all of Homebrew from the Browse section and install new formulae and casks with one click
 - Applications view: every app in /Applications with its architecture (Apple Silicon, Universal, or Intel-under-Rosetta — including whether a running app is actually being translated), update tracking via matching Homebrew casks, and one-click adoption of manually-installed apps into Homebrew (`brew install --cask --adopt`)
-- Uninstall any application: brew-managed apps through `brew uninstall`, everything else moved to the Trash (reversible)
+- Uninstall any application: brew-managed apps through `brew uninstall`, everything else moved to the Trash (reversible) — with an administrator-privileges fallback for protected apps, using the system's own authorization dialog (Firkin never sees the password)
 - Upgrade, pin/unpin, and uninstall packages, watching the real `brew` output as it runs
 - No Electron, no web views — SwiftUI talking to your own `brew`
 
